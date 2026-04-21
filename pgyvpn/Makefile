@@ -57,7 +57,7 @@ define Package/pgyvpn
   CATEGORY:=Network
   SUBMENU:=VPN
   DEPENDS:=@(arm||aarch64||mips||mipsel||i386||x86_64) \
-	+iptables +libc +libopenssl +libopenssl-1.1 +librt \
+	+iptables +libc +libopenssl1.1 +librt \
 	+libpthread +libstdcpp +kmod-tun
   TITLE:=PuGongYing VPN, Fast networking
   URL:=https://pgy.oray.com/
