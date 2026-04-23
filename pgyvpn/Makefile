@@ -1,128 +1,120 @@
-#
-# Copyright (C) 2006-2016 OpenWrt.org
-# This is free software, licensed under the GNU General Public License v2.
-#
-
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/target.mk
 
-PKG_NAME:=openssl1.1
-PKG_BASE:=1.1.1
-PKG_BUGFIX:=w
-PKG_VERSION:=$(PKG_BASE)$(PKG_BUGFIX)
+ifneq ($(CONFIG_USE_UCLIBC),)
+  PKG_LIBC_V:=uClibc-1.0.x
+else
+  PKG_LIBC_V:=$(LIBC)-unknown
+endif
+
+ifeq ($(ARCH),arm)
+  ifneq ($(findstring $(CPU_SUBTYPE), neon neon-vfpv4 vfpv3),)
+	PKG_ARCH_PGYYPN:=arm_$(CPU_TYPE)_$(CPU_SUBTYPE)-$(PKG_LIBC_V)
+  else
+	PKG_ARCH_PGYYPN:=arm_cortex-a7-$(PKG_LIBC_V)
+  endif
+endif
+ifeq ($(ARCH),aarch64)
+  ifneq ($(findstring $(CPU_TYPE), cortex-a53 cortex-a72),)
+	PKG_ARCH_PGYYPN:=aarch64_$(CPU_TYPE)-$(PKG_LIBC_V)
+  else
+	PKG_ARCH_PGYYPN:=aarch64_generic-$(PKG_LIBC_V)
+  endif
+endif
+ifeq ($(ARCH),mips)
+	PKG_ARCH_PGYYPN:=mips_24kc-$(PKG_LIBC_V)
+endif
+ifeq ($(ARCH),mipsel)
+  ifneq ($(findstring $(CPU_TYPE), 24kec 74kc 1004kc),)
+	PKG_ARCH_PGYYPN:=$(ARCH)_$(CPU_TYPE)-$(PKG_LIBC_V)
+  else
+	PKG_ARCH_PGYYPN:=mipsel_24kc-$(PKG_LIBC_V)
+  endif
+endif
+ifeq ($(BOARD),x86)
+  ifeq ($(ARCH),x86_64)
+	PKG_ARCH_PGYYPN:=x86_64-$(PKG_LIBC_V)
+  else
+	PKG_ARCH_PGYYPN:=i386_pentium-mmx-$(PKG_LIBC_V)
+  endif
+endif
+
+PKG_NAME:=pgyvpn
+PKG_VERSION:=3.1.0
 PKG_RELEASE:=1
-PKG_USE_MIPS16:=0
 
-PKG_BUILD_PARALLEL:=1
+PKG_SOURCE:=pgyvpnsvr
+PKG_SOURCE_URL:=https://mirrors.oray.com/orayos/packages/$(PKG_NAME)/$(PKG_ARCH_PGYYPN)/$(PKG_VERSION)/bin
+PKG_HASH:=skip
 
-PKG_SOURCE:=openssl-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:= \
-	https://openssl-library.org/source/old/$(PKG_BASE)/ \
-	https://www.openssl.org/source/old/$(PKG_BASE)/
-
-PKG_HASH:=cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8
-
-# 强制使用正确的源码目录（覆盖默认的 openssl-1.1.1w）
-PKG_BUILD_DIR:=$(BUILD_DIR)/openssl-$(PKG_VERSION)
-
-PKG_LICENSE:=OpenSSL
-PKG_LICENSE_FILES:=LICENSE
+PKG_FLAGS:=nonshared
+PKG_MAINTAINER:=Oray <developer@oray.com>
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/libopenssl1.1
-  SECTION:=libs
-  CATEGORY:=Libraries
-  SUBMENU:=SSL
-  TITLE:=OpenSSL 1.1 libraries (parallel install)
-  ABI_VERSION:=1.1
-  PROVIDES:=libcrypto1.1 libssl1.1
+define Package/pgyvpn
+  SECTION:=net
+  CATEGORY:=Network
+  SUBMENU:=VPN
+  DEPENDS:=@(arm||aarch64||mips||mipsel||i386||x86_64) \
+	+iptables +libc +libopenssl +librt \
+	+libpthread +libstdcpp +kmod-tun
+  TITLE:=PuGongYing VPN, Fast networking
+  URL:=https://pgy.oray.com/
 endef
 
-define Package/libopenssl1.1/description
-OpenSSL 1.1 shared libraries for legacy apps (coexists with OpenSSL 3)
+define Package/pgyvpn/description
+  PuGongYing VPN is a product of Oray Company, support custom network, account security
+  system, traffic monitoring, cloud application access, virtual serial port, etc.
 endef
 
-# ===== 构建选项（🔥已增强，适配蒲公英）=====
-OPENSSL_OPTIONS:= \
-	shared \
-	no-engine \
-	no-tests \
-	no-async \
-	enable-tls1_2 \
-	enable-tls1_1 \
-	enable-weak-ssl-ciphers \
-	zlib-dynamic
+define Download/extra
+  FILE:=pgyvpn_oraysl
+  URL:=$(PKG_SOURCE_URL)
+  HASH:=skip
+endef
+$(eval $(call Download,extra))
 
-ifndef CONFIG_OPENSSL_WITH_ASM
-  OPENSSL_OPTIONS += no-asm
-endif
-
-# ===== 正确 target（多架构支持）=====
-ifeq ($(ARCH),mips)
-  OPENSSL_TARGET:=linux-mips32
-else ifeq ($(ARCH),aarch64)
-  OPENSSL_TARGET:=linux-aarch64
-else ifeq ($(ARCH),arm)
-  OPENSSL_TARGET:=linux-armv4
-else ifeq ($(ARCH),x86_64)
-  OPENSSL_TARGET:=linux-x86_64
-else
-  OPENSSL_TARGET:=linux-generic32
-endif
-
-# ===== 编译优化（不影响 Configure）=====
-TARGET_CFLAGS += $(FPIC) -ffunction-sections -fdata-sections
-TARGET_LDFLAGS += -Wl,--gc-sections
-
-# ===== Configure =====
-define Build/Configure
-	(cd $(PKG_BUILD_DIR); \
-	./Configure $(OPENSSL_TARGET) \
-		--prefix=/usr \
-		--openssldir=/etc/ssl-1.1 \
-		--libdir=lib \
-		--cross-compile-prefix="$(TARGET_CROSS)" \
-		--with-zlib-include=/usr/include \
-		--with-zlib-lib=/usr/lib \
-		$(OPENSSL_OPTIONS) \
-	)
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	mv $(DL_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(PKG_BUILD_DIR)
+	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
 endef
 
-# ===== Compile =====
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR) $(PKG_JOBS)
-	$(MAKE) -C $(PKG_BUILD_DIR) \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		install_sw install_ssldirs
+	true
 endef
 
-# ===== 开发文件（避免污染 OpenSSL 3）=====
-define Build/InstallDev
-	# 头文件隔离
-	$(INSTALL_DIR) $(1)/usr/include/openssl1.1
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/openssl $(1)/usr/include/openssl1.1/
+define Package/pgyvpn/install
+	$(INSTALL_DIR) $(1)/etc/init.d
+	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
+	$(INSTALL_DIR) $(1)/usr/sbin
+	$(INSTALL_DIR) $(1)/usr/share/pgyvpn
 
-	# 静态库
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libcrypto.a $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libssl.a $(1)/usr/lib/
-
-	# 只放带版本号的动态库
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libcrypto.so.1.1 $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libssl.so.1.1 $(1)/usr/lib/
+	$(CP) $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(1)/usr/sbin
+	$(INSTALL_BIN) ./files/etc/init.d/* $(1)/etc/init.d
+	$(INSTALL_CONF) ./files/etc/config/* $(1)/etc/config
+	$(INSTALL_BIN) ./files/etc/hotplug.d/iface/* $(1)/etc/hotplug.d/iface
+	$(INSTALL_BIN) ./files/usr/share/pgyvpn/* $(1)/usr/share/pgyvpn
 endef
 
-# ===== 运行时安装（核心）=====
-define Package/libopenssl1.1/install
-	$(INSTALL_DIR) $(1)/usr/lib
-
-	# ✅ 只安装 1.1（不会覆盖 OpenSSL 3）
-	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/usr/lib/libcrypto.so.1.1 $(1)/usr/lib/
-	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/usr/lib/libssl.so.1.1 $(1)/usr/lib/
-
-	# 防止覆盖 OpenSSL 3
-	rm -f $(1)/usr/lib/libcrypto.so
-	rm -f $(1)/usr/lib/libssl.so
+define Package/pgyvpn/preinst
+	#!/bin/sh
+	[ -z "$${IPKG_INSTROOT}" ] && {
+		pidof pgyvpnsvr > /dev/null && \
+			test -f $${PKG_ROOT}etc/init.d/pgyvpn && \
+				/etc/init.d/pgyvpn stop; true
+	}
+	exit 0
 endef
 
-$(eval $(call BuildPackage,libopenssl1.1))
+define Package/pgyvpn/postinst
+	#!/bin/sh
+	[ -z "$${IPKG_INSTROOT}" ] && {
+		/etc/init.d/pgyvpn restart; true
+	}
+	exit 0
+endef
+
+$(eval $(call BuildPackage,pgyvpn))
