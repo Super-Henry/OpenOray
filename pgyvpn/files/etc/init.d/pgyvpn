@@ -8,15 +8,12 @@ USE_PROCD=1
 
 write_log()
 {
-	echo "$*"
+	echo $*
 	logger -t pgyvpn "$*"
 }
 
 start_service()
 {
-	# 🔥 强制优先使用 OpenSSL 1.1
-	export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
-
 	local res_def_path='/usr/share/pgyvpn'
 	local pgyvpn_filename
 	local username
@@ -37,12 +34,12 @@ start_service()
 	local login_status
 	local enable_status
 
-	# read uci config
+	#read uci config
 	config_load pgyvpn
 	config_get login_status base login_status
 	config_get enable_status base enable_status
 
-	if [ -z "$enable_status" ] || [ "$enable_status" = "0" ]; then
+	if [ -z $enable_status ] || [ "$enable_status" == "0" ]; then
 		exit 0
 	fi
 
@@ -60,12 +57,12 @@ start_service()
 	config_get oraysl_logpath oraysl logpath '/tmp/oray/pgyvpn_oraysl/log'
 	config_get oraysl_statusfilename oraysl statusfilename '/tmp/oray/pgyvpn_oraysl/status'
 	config_get oraysl_pidfilename oraysl pidfilename '/tmp/oray/pgyvpn_oraysl/pid'
+	local_ip=$(uci get network.lan.ipaddr 2> /dev/null)
+	local_mask=$(uci get network.lan.netmask 2> /dev/null)
 
-	local_ip=$(uci get network.lan.ipaddr 2>/dev/null)
-	local_mask=$(uci get network.lan.netmask 2>/dev/null)
-	local host_name=$(uci get system.@system[0].hostname 2>/dev/null)
+	local host_name=$(uci get system.@system[0].hostname 2> /dev/null)
 
-	# print config
+	#print config
 	write_log "pgyvpn app filename is $pgyvpn_filename"
 	write_log "username is $username"
 	write_log "log path is $log_path"
@@ -79,73 +76,75 @@ start_service()
 	write_log "oraysl log path is $oraysl_logpath"
 	write_log "oraysl status filename is $oraysl_statusfilename"
 	write_log "oraysl pid filename is $oraysl_pidfilename"
+	[ $use_encrypt -eq 1 ] && write_log 'use encrypt' || write_log 'no use encrypt'
 
-	[ "$use_encrypt" -eq 1 ] && write_log 'use encrypt' || write_log 'no use encrypt'
-
-	# make app command args
+	#make app command args
 	local cmd_arg=''
 	local api_address="pgyapi.oray.net"
-
 	cmd_arg="$cmd_arg --apiaddress $api_address --usehttps --rpc --autologinAsRpc"
+	#cmd_arg="$cmd_arg --apiaddress $api_address --usehttps --autologinAsRpc"
 	cmd_arg="$cmd_arg --logsize 4194304 --logpath $log_path --logmask $log_mask"
 	cmd_arg="$cmd_arg --orayslpath $oraysl_filename --oraysllogpath $oraysl_logpath --orayslstatusfilename $oraysl_statusfilename --orayslpidfilename $oraysl_pidfilename"
-
 	[ -n "$script_p2pinit" ] && cmd_arg="$cmd_arg -n $script_p2pinit"
 	[ -n "$script_vncinit" ] && cmd_arg="$cmd_arg -n $script_vncinit"
+	# [ -n "$script_progress" ] && cmd_arg="$cmd_arg -n $script_progress"
 	[ -n "$script_progress" ] && cmd_arg="$cmd_arg -N $script_progress"
 	[ -n "$local_ip" ] && cmd_arg="$cmd_arg --localip $local_ip"
 	[ -n "$local_mask" ] && cmd_arg="$cmd_arg --localmask $local_mask"
-	[ "$use_encrypt" -eq 1 ] && cmd_arg="$cmd_arg -r"
-	[ "$check_route_conflict" -ne 0 ] && cmd_arg="$cmd_arg --vipmask 255.255.255.255"
+	[ $use_encrypt -eq 1 ] && cmd_arg="$cmd_arg -r"
+	[ $check_route_conflict -ne 0 ] && cmd_arg="$cmd_arg --vipmask 255.255.255.255"
 	[ -n "$host_name" ] && cmd_arg="$cmd_arg --hostname $host_name"
 
-	# start app
+	#start app
 	procd_open_instance
 	procd_set_param command $pgyvpn_filename $cmd_arg
 	[ -n "$username" ] && procd_append_param command --sn "$username"
 	[ -n "$password" ] && procd_append_param command --pwd "$password"
 	procd_set_param respawn
 	procd_close_instance
+
 }
 
 stop_service()
 {
-	# remove p2p firewall
-	iptables -w -t filter -F oray_vpn_p2p 2>/dev/null
-	while true; do
+	#remove p2p firewall
+	iptables -w -t filter -F oray_vpn_p2p 2> /dev/null
+	while true;
+	do
 		iptables -w -t filter -D INPUT -j oray_vpn_p2p 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
-	iptables -w -t filter -X oray_vpn_p2p 2>/dev/null
+	iptables -w -t filter -X oray_vpn_p2p 2> /dev/null
 
-	# remove forward firewall
-	iptables -w -t filter -F oray_vpn_vnc 2>/dev/null
-	while true; do
+	#remove forward firewall
+	iptables -w -t filter -F oray_vpn_vnc 2> /dev/null
+	while true;
+	do
 		iptables -w -t filter -D INPUT -j oray_vpn_vnc 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
 
-	while true; do
+	while true;
+	do
 		iptables -w -t filter -D FORWARD -j oray_vpn_vnc 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
 
-	while true; do
+	while true;
+	do
 		iptables -w -t filter -D OUTPUT -j oray_vpn_vnc 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
-	iptables -w -t filter -X oray_vpn_vnc 2>/dev/null
+	iptables -w -t filter -X oray_vpn_vnc 2> /dev/null
 
-	# stop oraysl
-	killall pgyvpn_oraysl 2>/dev/null
+	#stop oraysl
+	killall pgyvpn_oraysl 2> /dev/null
 
-	rm -f /tmp/pgyvpnsvr_mutex 2>/dev/null
-	rm -f /tmp/pgyvpnsvr_rpc_mutex 2>/dev/null
+	rm /tmp/pgyvpnsvr_mutex 2> /dev/null #delete mutex file
+	rm /tmp/pgyvpnsvr_rpc_mutex 2> /dev/null #delete rpc mutex file
 
 	local oraysl_statusfilename
 	config_load pgyvpn
 	config_get oraysl_statusfilename oraysl statusfilename '/tmp/oray/pgyvpn_oraysl/status'
-
-	# ✅ 修复点（必须带 $）
-	rm -f "$oraysl_statusfilename" 2>/dev/null
+	rm oraysl_statusfilename 2> /dev/null #delete oraysl status file
 }
