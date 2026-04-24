@@ -49,26 +49,22 @@ PKG_HASH:=skip
 
 PKG_FLAGS:=nonshared
 PKG_MAINTAINER:=Oray <developer@oray.com>
-
-# 关键修复：禁止 MIPS16，保证二进制正常运行
+# 防止 MIPS16 造成汇编不兼容
 PKG_USE_MIPS16:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-# ==================== 核心修复：正确依赖 openssl1.1 ====================
-# 替换原来的 libopenssl 为你编译的 libopenssl1.1
-# 去掉了错误的 TARGET_LDFLAGS 赋值语句
 define Package/pgyvpn
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=VPN
+  # 只依赖 libopenssl1.1，不要混用 libopenssl
   DEPENDS:=@(arm||aarch64||mips||mipsel||i386||x86_64) \
 	+iptables +libc +libopenssl1.1 +librt \
 	+libpthread +libstdcpp +kmod-tun
   TITLE:=PuGongYing VPN, Fast networking
   URL:=https://pgy.oray.com/
 endef
-# ====================================================================
 
 define Package/pgyvpn/description
   PuGongYing VPN is a product of Oray Company, support custom network, account security
@@ -86,16 +82,17 @@ define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	mv $(DL_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(PKG_BUILD_DIR)/
 	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
-	# 删除可能干扰的 Makefile 或 configure 脚本
+	# 删除任何可能触发默认构建的文件
 	rm -f $(PKG_BUILD_DIR)/Makefile $(PKG_BUILD_DIR)/configure
 endef
 
+# 关键：覆盖 configure 和 compile 阶段
 define Build/Configure
-	true
+	:
 endef
 
 define Build/Compile
-	true
+	:
 endef
 
 define Package/pgyvpn/install
