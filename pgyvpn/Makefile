@@ -77,11 +77,12 @@ $(eval $(call Download,extra))
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	mv $(DL_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(PKG_BUILD_DIR)
+	mv $(DL_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(PKG_BUILD_DIR)/
 	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
+	# 删除可能干扰的 Makefile 或 configure 脚本
+	rm -f $(PKG_BUILD_DIR)/Makefile $(PKG_BUILD_DIR)/configure
 endef
 
-# 添加以下空配置阶段，防止默认的 configure 步骤运行
 define Build/Configure
 	true
 endef
