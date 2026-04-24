@@ -81,6 +81,11 @@ define Build/Prepare
 	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
 endef
 
+# 添加以下空配置阶段，防止默认的 configure 步骤运行
+define Build/Configure
+	true
+endef
+
 define Build/Compile
 	true
 endef
