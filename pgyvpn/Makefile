@@ -50,18 +50,25 @@ PKG_HASH:=skip
 PKG_FLAGS:=nonshared
 PKG_MAINTAINER:=Oray <developer@oray.com>
 
+# 关键修复：禁止 MIPS16，保证二进制正常运行
+PKG_USE_MIPS16:=0
+
 include $(INCLUDE_DIR)/package.mk
 
+# ==================== 核心修复：正确依赖 openssl1.1 ====================
+# 替换原来的 libopenssl 为你编译的 libopenssl1.1
+# 去掉了错误的 TARGET_LDFLAGS 赋值语句
 define Package/pgyvpn
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=VPN
   DEPENDS:=@(arm||aarch64||mips||mipsel||i386||x86_64) \
-	+iptables +libc +libopenssl +librt \
+	+iptables +libc +libopenssl1.1 +librt \
 	+libpthread +libstdcpp +kmod-tun
   TITLE:=PuGongYing VPN, Fast networking
   URL:=https://pgy.oray.com/
 endef
+# ====================================================================
 
 define Package/pgyvpn/description
   PuGongYing VPN is a product of Oray Company, support custom network, account security
