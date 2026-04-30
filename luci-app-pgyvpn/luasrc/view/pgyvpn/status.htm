@@ -12,9 +12,8 @@
 		local user = cbi:get("pgyvpn", "base","user")
 		local vpnid = cbi:get("pgyvpn", "base","vpnid")
 		local vpnpwd = cbi:get("pgyvpn", "base","vpnpwd")
-		local md5 = require "md5"
 		local pwd = cbi:get("pgyvpn","base","pwd")
-		local pwd_md5 = md5.sumhexa(pwd)
+		local pwd_md5 = vpnpwd or pwd
 
 		if vpnid ~= nil and vpnid ~= "" then
 			user = vpnid
