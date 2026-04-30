@@ -43,8 +43,11 @@ PKG_NAME:=pgyvpn
 PKG_VERSION:=3.1.0
 PKG_RELEASE:=1
 
-PKG_SOURCE:=pgyvpnsvr
-PKG_SOURCE_URL:=https://mirrors.oray.com/orayos/packages/$(PKG_NAME)/$(PKG_ARCH_PGYYPN)/$(PKG_VERSION)/bin
+# ====================== 这里只关闭下载，其余不动 ======================
+PKG_SOURCE:=
+PKG_SOURCE_URL:=
+# ====================== 以上是唯一改动区域 ======================
+
 PKG_HASH:=skip
 
 PKG_FLAGS:=nonshared
@@ -71,16 +74,20 @@ define Package/pgyvpn/description
   system, traffic monitoring, cloud application access, virtual serial port, etc.
 endef
 
-define Download/extra
-  FILE:=pgyvpn_oraysl
-  URL:=$(PKG_SOURCE_URL)
-  HASH:=skip
-endef
-$(eval $(call Download,extra))
+# ====================== 注释掉下载，其余不动 ======================
+#define Download/extra
+#  FILE:=pgyvpn_oraysl
+#  URL:=$(PKG_SOURCE_URL)
+#  HASH:=skip
+#endef
+#$(eval $(call Download,extra))
 
+# ====================== 只改这里：从本地 files 读取 ======================
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	mv $(DL_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(PKG_BUILD_DIR)/
+	# 从本文件夹读取你放的两个文件
+	cp ./files/usr/sbin/pgyvpnsvr $(PKG_BUILD_DIR)/
+	cp ./files/usr/sbin/pgyvpn_oraysl $(PKG_BUILD_DIR)/
 	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
 	# 删除任何可能触发默认构建的文件
 	rm -f $(PKG_BUILD_DIR)/Makefile $(PKG_BUILD_DIR)/configure
