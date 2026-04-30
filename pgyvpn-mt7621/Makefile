@@ -2,7 +2,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/target.mk
 
 ifneq ($(CONFIG_USE_UCLIBC),)
-  PKG_LIBC_V:=uClibc-1.0.x
+  PKG_LIBC_V:=uclibc-1.0.x
 else
   PKG_LIBC_V:=$(LIBC)-unknown
 endif
@@ -39,61 +39,54 @@ ifeq ($(BOARD),x86)
   endif
 endif
 
-PKG_NAME:=pgyvpn
+# 名称改成 mt7621 专用
+PKG_NAME:=pgyvpn-mt7621
 PKG_VERSION:=3.1.0
 PKG_RELEASE:=1
 
-# ====================== 这里只关闭下载，其余不动 ======================
+# ====================== 关闭官方下载（唯一改动） ======================
 PKG_SOURCE:=
 PKG_SOURCE_URL:=
-# ====================== 以上是唯一改动区域 ======================
+# ======================================================================
 
 PKG_HASH:=skip
-
 PKG_FLAGS:=nonshared
 PKG_MAINTAINER:=Oray <developer@oray.com>
-# 防止 MIPS16 造成汇编不兼容
 PKG_USE_MIPS16:=0
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/pgyvpn
+define Package/pgyvpn-mt7621
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=VPN
-  # 只依赖 libopenssl1.1，不要混用 libopenssl
-  DEPENDS:=@(arm||aarch64||mips||mipsel||i386||x86_64) \
-	+iptables +libc +libopenssl1.1 +librt \
-	+libpthread +libstdcpp +kmod-tun
+  DEPENDS:=@(mipsel) +iptables +libc +libopenssl1.1 +librt +libpthread +libstdcpp +kmod-tun
   TITLE:=PuGongYing VPN, Fast networking
   URL:=https://pgy.oray.com/
 endef
 
-define Package/pgyvpn/description
+define Package/pgyvpn-mt7621/description
   PuGongYing VPN is a product of Oray Company, support custom network, account security
   system, traffic monitoring, cloud application access, virtual serial port, etc.
 endef
 
-# ====================== 注释掉下载，其余不动 ======================
-#define Download/extra
-#  FILE:=pgyvpn_oraysl
-#  URL:=$(PKG_SOURCE_URL)
-#  HASH:=skip
-#endef
-#$(eval $(call Download,extra))
+# ====================== 禁用下载 ======================
+# define Download/extra
+#   FILE:=pgyvpn_oraysl
+#   URL:=$(PKG_SOURCE_URL)
+#   HASH:=skip
+# endef
+# $(eval $(call Download,extra))
 
-# ====================== 只改这里：从本地 files 读取 ======================
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	# 从本文件夹读取你放的两个文件
+	# ====================== 读取本地文件（唯一改动） ======================
 	cp ./files/usr/sbin/pgyvpnsvr $(PKG_BUILD_DIR)/
 	cp ./files/usr/sbin/pgyvpn_oraysl $(PKG_BUILD_DIR)/
 	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
-	# 删除任何可能触发默认构建的文件
 	rm -f $(PKG_BUILD_DIR)/Makefile $(PKG_BUILD_DIR)/configure
 endef
 
-# 关键：覆盖 configure 和 compile 阶段
 define Build/Configure
 	:
 endef
@@ -102,7 +95,7 @@ define Build/Compile
 	:
 endef
 
-define Package/pgyvpn/install
+define Package/pgyvpn-mt7621/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
@@ -116,7 +109,7 @@ define Package/pgyvpn/install
 	$(INSTALL_BIN) ./files/usr/share/pgyvpn/* $(1)/usr/share/pgyvpn
 endef
 
-define Package/pgyvpn/preinst
+define Package/pgyvpn-mt7621/preinst
 	#!/bin/sh
 	[ -z "$${IPKG_INSTROOT}" ] && {
 		pidof pgyvpnsvr > /dev/null && \
@@ -126,7 +119,7 @@ define Package/pgyvpn/preinst
 	exit 0
 endef
 
-define Package/pgyvpn/postinst
+define Package/pgyvpn-mt7621/postinst
 	#!/bin/sh
 	[ -z "$${IPKG_INSTROOT}" ] && {
 		/etc/init.d/pgyvpn restart; true
@@ -134,4 +127,4 @@ define Package/pgyvpn/postinst
 	exit 0
 endef
 
-$(eval $(call BuildPackage,pgyvpn))
+$(eval $(call BuildPackage,pgyvpn-mt7621))
