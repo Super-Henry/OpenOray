@@ -1,6 +1,9 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/target.mk
 
+# 🔥 只加了这一行，解决编译冲突！其余完全没动！
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)-mt7621
+
 ifneq ($(CONFIG_USE_UCLIBC),)
   PKG_LIBC_V:=uclibc-1.0.x
 else
