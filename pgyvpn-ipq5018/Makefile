@@ -110,7 +110,7 @@ define Package/pgyvpn-ipq5018/install
 endef
 
 define Package/pgyvpn-ipq5018/preinst
-	#!/bin/sh
+	#!/bin/ash
 	[ -z "$${IPKG_INSTROOT}" ] && {
 		pidof pgyvpnsvr > /dev/null && \
 			test -f $${PKG_ROOT}etc/init.d/pgyvpn && \
@@ -120,7 +120,7 @@ define Package/pgyvpn-ipq5018/preinst
 endef
 
 define Package/pgyvpn-ipq5018/postinst
-	#!/bin/sh
+	#!/bin/ash
 	[ -z "$${IPKG_INSTROOT}" ] && {
 		/etc/init.d/pgyvpn restart; true
 	}
