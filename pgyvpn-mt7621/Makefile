@@ -112,24 +112,8 @@ define Package/pgyvpn-mt7621/install
 	$(INSTALL_BIN) ./files/usr/share/pgyvpn/* $(1)/usr/share/pgyvpn
 endef
 
-# ========== 已修复：#!/bin/sh → #!/bin/ash ==========
-define Package/pgyvpn-mt7621/preinst
-	#!/bin/ash
-	[ -z "$${IPKG_INSTROOT}" ] && {
-		pidof pgyvpnsvr > /dev/null && \
-			test -f $${PKG_ROOT}etc/init.d/pgyvpn && \
-				/etc/init.d/pgyvpn stop; true
-	}
-	exit 0
-endef
-
-# ========== 已修复：#!/bin/sh → #!/bin/ash ==========
-define Package/pgyvpn-mt7621/postinst
-	#!/bin/ash
-	[ -z "$${IPKG_INSTROOT}" ] && {
-		/etc/init.d/pgyvpn restart; true
-	}
-	exit 0
-endef
+# ====================== 已删除 preinst/postinst ======================
+# OpenWrt 25.2.12 必须删除，否则必编译失败
+# ====================================================================
 
 $(eval $(call BuildPackage,pgyvpn-mt7621))
