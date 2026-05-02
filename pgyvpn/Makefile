@@ -109,22 +109,26 @@ define Package/pgyvpn/install
 	$(INSTALL_BIN) ./files/usr/share/pgyvpn/* $(1)/usr/share/pgyvpn
 endef
 
-define Package/pgyvpn/preinst
-	#!/bin/sh
-	[ -z "$${IPKG_INSTROOT}" ] && {
-		pidof pgyvpnsvr > /dev/null && \
-			test -f $${PKG_ROOT}etc/init.d/pgyvpn && \
-				/etc/init.d/pgyvpn stop; true
-	}
-	exit 0
-endef
-
-define Package/pgyvpn/postinst
-	#!/bin/sh
-	[ -z "$${IPKG_INSTROOT}" ] && {
-		/etc/init.d/pgyvpn restart; true
-	}
-	exit 0
-endef
+# ====================== 已屏蔽 安装脚本 ======================
+# 以下内容全部注释/删除，解决 OpenWrt 25.2 编译报错
+#
+# define Package/pgyvpn/preinst
+# 	#!/bin/sh
+# 	[ -z "$${IPKG_INSTROOT}" ] && {
+# 		pidof pgyvpnsvr > /dev/null && \
+# 			test -f $${PKG_ROOT}etc/init.d/pgyvpn && \
+# 				/etc/init.d/pgyvpn stop; true
+# 	}
+# 	exit 0
+# endef
+#
+# define Package/pgyvpn/postinst
+# 	#!/bin/sh
+# 	[ -z "$${IPKG_INSTROOT}" ] && {
+# 		/etc/init.d/pgyvpn restart; true
+# 	}
+# 	exit 0
+# endef
+# ==============================================================
 
 $(eval $(call BuildPackage,pgyvpn))
