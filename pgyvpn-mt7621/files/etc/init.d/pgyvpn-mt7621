@@ -9,12 +9,12 @@ USE_PROCD=1
 write_log()
 {
 	echo $*
-	logger -t pgyvpn "$*"
+	logger -t pgyvpn-mt7621 "$*"
 }
 
 start_service()
 {
-	local res_def_path='/usr/share/pgyvpn'
+	local res_def_path='/usr/share/pgyvpn-mt7621'
 	local pgyvpn_filename
 	local username
 	local password
@@ -35,7 +35,7 @@ start_service()
 	local enable_status
 
 	#read uci config
-	config_load pgyvpn
+	config_load pgyvpn-mt7621
 	config_get login_status base login_status
 	config_get enable_status base enable_status
 
@@ -43,20 +43,20 @@ start_service()
 		exit 0
 	fi
 
-	config_get pgyvpn_filename base filename '/usr/sbin/pgyvpnsvr'
+	config_get pgyvpn_filename base filename '/usr/sbin/pgyvpnsvr-mt7621'
 	config_get username base user ''
 	config_get password base pwd ''
 	config_get_bool check_route_conflict base check_route_conflict 0
-	config_get log_path log path '/tmp/oray/pgyvpnsvr/log'
+	config_get log_path log path '/tmp/oray/pgyvpnsvr-mt7621/log'
 	config_get log_mask log mask '0x77'
 	config_get_bool use_encrypt secure encrypt 0
 	config_get script_p2pinit base script_p2pinit "$res_def_path/p2pinit.sh"
-	config_get script_vncinit base script_vncinit "$res_def_path/vncinit.sh"
+	config_get script_vncinit base script_vnc "$res_def_path/vncinit.sh"
 	config_get script_progress base script_progress "$res_def_path/vpnprogress.sh"
-	config_get oraysl_filename oraysl filename '/usr/sbin/pgyvpn_oraysl'
-	config_get oraysl_logpath oraysl logpath '/tmp/oray/pgyvpn_oraysl/log'
-	config_get oraysl_statusfilename oraysl statusfilename '/tmp/oray/pgyvpn_oraysl/status'
-	config_get oraysl_pidfilename oraysl pidfilename '/tmp/oray/pgyvpn_oraysl/pid'
+	config_get oraysl_filename oraysl filename '/usr/sbin/pgyvpn_oraysl-mt7621'
+	config_get oraysl_logpath oraysl logpath '/tmp/oray/pgyvpn_oraysl-mt7621/log'
+	config_get oraysl_statusfilename oraysl statusfilename '/tmp/oray/pgyvpn_oraysl-mt7621/status'
+	config_get oraysl_pidfilename oraysl pidfilename '/tmp/oray/pgyvpn_oraysl-mt7621/pid'
 	local_ip=$(uci get network.lan.ipaddr 2> /dev/null)
 	local_mask=$(uci get network.lan.netmask 2> /dev/null)
 
@@ -108,43 +108,43 @@ start_service()
 stop_service()
 {
 	#remove p2p firewall
-	iptables -w -t filter -F oray_vpn_p2p 2> /dev/null
+	iptables -w -t filter -F oray_vpn_p2p_mt7621 2> /dev/null
 	while true;
 	do
-		iptables -w -t filter -D INPUT -j oray_vpn_p2p 2>/dev/null
+		iptables -w -t filter -D INPUT -j oray_vpn_p2p_mt7621 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
-	iptables -w -t filter -X oray_vpn_p2p 2> /dev/null
+	iptables -w -t filter -X oray_vpn_p2p_mt7621 2> /dev/null
 
 	#remove forward firewall
-	iptables -w -t filter -F oray_vpn_vnc 2> /dev/null
+	iptables -w -t filter -F oray_vpn_vnc_mt7621 2> /dev/null
 	while true;
 	do
-		iptables -w -t filter -D INPUT -j oray_vpn_vnc 2>/dev/null
+		iptables -w -t filter -D INPUT -j oray_vpn_vnc_mt7621 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
 
 	while true;
 	do
-		iptables -w -t filter -D FORWARD -j oray_vpn_vnc 2>/dev/null
+		iptables -w -t filter -D FORWARD -j oray_vpn_vnc_mt7621 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
 
 	while true;
 	do
-		iptables -w -t filter -D OUTPUT -j oray_vpn_vnc 2>/dev/null
+		iptables -w -t filter -D OUTPUT -j oray_vpn_vnc_mt7621 2>/dev/null
 		[ $? -ne 0 ] && break
 	done
-	iptables -w -t filter -X oray_vpn_vnc 2> /dev/null
+	iptables -w -t filter -X oray_vpn_vnc_mt7621 2> /dev/null
 
 	#stop oraysl
-	killall pgyvpn_oraysl 2> /dev/null
+	killall pgyvpn_oraysl-mt7621 2> /dev/null
 
-	rm /tmp/pgyvpnsvr_mutex 2> /dev/null #delete mutex file
-	rm /tmp/pgyvpnsvr_rpc_mutex 2> /dev/null #delete rpc mutex file
+	rm /tmp/pgyvpnsvr-mt7621_mutex 2> /dev/null #delete mutex file
+	rm /tmp/pgyvpnsvr-mt7621_rpc_mutex 2> /dev/null #delete rpc mutex file
 
 	local oraysl_statusfilename
-	config_load pgyvpn
-	config_get oraysl_statusfilename oraysl statusfilename '/tmp/oray/pgyvpn_oraysl/status'
-	rm oraysl_statusfilename 2> /dev/null #delete oraysl status file
+	config_load pgyvpn-mt7621
+	config_get oraysl_statusfilename oraysl statusfilename '/tmp/oray/pgyvpn_oraysl-mt7621/status'
+	rm -f $oraysl_statusfilename 2> /dev/null
 }
