@@ -1,7 +1,6 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/target.mk
 
-# 🔥 只加了这一行，解决编译冲突！其余完全没动！
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)-mt7621
 
 ifneq ($(CONFIG_USE_UCLIBC),)
@@ -64,29 +63,20 @@ define Package/pgyvpn-mt7621
   CATEGORY:=Network
   SUBMENU:=VPN
   DEPENDS:=@(mipsel) +iptables +libc +libopenssl1.1 +librt +libpthread +libstdcpp +kmod-tun
-  TITLE:=PuGongYing VPN, Fast networking
+  TITLE:=PuGongYing VPN (MT7621)
   URL:=https://pgy.oray.com/
 endef
 
 define Package/pgyvpn-mt7621/description
-  PuGongYing VPN is a product of Oray Company, support custom network, account security
-  system, traffic monitoring, cloud application access, virtual serial port, etc.
+  PuGongYing VPN for MT7621, no conflict with stock pgyvpn
 endef
-
-# ====================== 禁用下载 ======================
-# define Download/extra
-#   FILE:=pgyvpn_oraysl
-#   URL:=$(PKG_SOURCE_URL)
-#   HASH:=skip
-# endef
-# $(eval $(call Download,extra))
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
-	# ====================== 读取本地文件（唯一改动） ======================
-	cp ./files/usr/sbin/pgyvpnsvr $(PKG_BUILD_DIR)/
-	cp ./files/usr/sbin/pgyvpn_oraysl $(PKG_BUILD_DIR)/
-	chmod +x $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr}
+	# 复制并重命名二进制文件，避免和原版冲突
+	cp ./files/usr/sbin/pgyvpnsvr $(PKG_BUILD_DIR)/pgyvpnsvr-mt7621
+	cp ./files/usr/sbin/pgyvpn_oraysl $(PKG_BUILD_DIR)/pgyvpn_oraysl-mt7621
+	chmod +x $(PKG_BUILD_DIR)/pgyvpnsvr-mt7621 $(PKG_BUILD_DIR)/pgyvpn_oraysl-mt7621
 	rm -f $(PKG_BUILD_DIR)/Makefile $(PKG_BUILD_DIR)/configure
 endef
 
@@ -103,13 +93,17 @@ define Package/pgyvpn-mt7621/install
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/iface
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_DIR) $(1)/usr/share/pgyvpn
+	$(INSTALL_DIR) $(1)/usr/share/pgyvpn-mt7621
 
-	$(CP) $(PKG_BUILD_DIR)/{pgyvpn_oraysl,pgyvpnsvr} $(1)/usr/sbin
-	$(INSTALL_BIN) ./files/etc/init.d/* $(1)/etc/init.d
-	$(INSTALL_CONF) ./files/etc/config/* $(1)/etc/config
-	$(INSTALL_BIN) ./files/etc/hotplug.d/iface/* $(1)/etc/hotplug.d/iface
-	$(INSTALL_BIN) ./files/usr/share/pgyvpn/* $(1)/usr/share/pgyvpn
+	# 安装带 mt7621 后缀的执行文件
+	$(CP) $(PKG_BUILD_DIR)/pgyvpnsvr-mt7621 $(1)/usr/sbin/
+	$(CP) $(PKG_BUILD_DIR)/pgyvpn_oraysl-mt7621 $(1)/usr/sbin/
+
+	# 安装独立的配置、脚本、资源目录
+	$(INSTALL_BIN) ./files/etc/init.d/pgyvpn-mt7621 $(1)/etc/init.d/
+	$(INSTALL_CONF) ./files/etc/config/pgyvpn-mt7621 $(1)/etc/config/
+	$(INSTALL_BIN) ./files/etc/hotplug.d/iface/pgyvpn-mt7621 $(1)/etc/hotplug.d/iface/
+	$(CP) ./files/usr/share/pgyvpn-mt7621/* $(1)/usr/share/pgyvpn-mt7621/
 endef
 
 # ====================== 已删除 preinst/postinst ======================
