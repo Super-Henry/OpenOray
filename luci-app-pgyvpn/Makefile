@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 LUCI_TITLE:=LuCI Support for the PuGongYing VPN
-LUCI_DEPENDS:=LUCI_DEPENDS:=+pgyvpn +luci-base +luci-mod-system
+LUCI_DEPENDS:=+pgyvpn +luci-base +luci-mod-system
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
